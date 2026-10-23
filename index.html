@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f4ecd8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Explorer's Chart">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Explorer's Chart</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=IM+Fell+English:ital@0;1&family=IM+Fell+English+SC&display=swap">
+<style>
+/* Layout: full-height chart on the left, an explorer's logbook on the right; stacks on phones. */
+:root {
+  --parchment: #f4ecd8;
+  --parchment-deep: #e7d9b4;
+  --sea: #e3d8b5;
+  --land: #f6eed7;
+  --ink-brown: #4a3220;
+  --ink-navy: #1d3557;
+  --seal: #8c2f26;
+  --gold: #a4782c;
+  --f-display: 'Cinzel', 'Trajan Pro', 'Times New Roman', serif;
+  --f-body: 'IM Fell English', 'Palatino Linotype', Palatino, Georgia, serif;
+  --f-sc: 'IM Fell English SC', 'IM Fell English', Georgia, serif;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background-color: var(--parchment);
+  color: var(--ink-brown);
+  font-family: var(--f-body);
+  font-size: 16px;
+  line-height: 1.4;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 12px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='400'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' seed='4'/><feColorMatrix values='0 0 0 0 0.35  0 0 0 0 0.24  0 0 0 0 0.1  0 0 0 0.16 0'/></filter><rect width='400' height='400' filter='url(%23n)'/></svg>");
+  overflow-x: hidden;
+}
+.app { display: flex; flex-direction: column; gap: 10px; min-height: 100%; }
+
+/* Header */
+.masthead { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px;
+  border-bottom: 3px double var(--ink-brown); padding-bottom: 8px; }
+.title { min-width: 0; }
+.title .kicker { font-family: var(--f-sc); letter-spacing: .22em; font-size: 12px; color: var(--gold); text-transform: uppercase; }
+.title h1 { margin: 0; font-family: var(--f-display); font-weight: 700; letter-spacing: .06em; font-size: clamp(18px, 3.4vw, 28px); line-height: 1.15; text-wrap: balance; }
+.title h1 input { font: inherit; letter-spacing: inherit; color: var(--seal); background: transparent; border: 0; border-bottom: 1px dotted var(--ink-brown);
+  width: min(26ch, 62vw); padding: 0 2px; text-transform: none; }
+.title h1 input:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.tools { display: flex; flex-wrap: wrap; gap: 6px; }
+
+button, .btn { font-family: var(--f-sc); font-size: 14px; letter-spacing: .08em; color: var(--parchment); background: var(--ink-brown);
+  border: 1px solid #2c1d10; border-radius: 2px; padding: 7px 12px; cursor: pointer; box-shadow: inset 0 0 0 2px rgba(244,236,216,.15); }
+button:hover, .btn:hover { background: #5d4129; }
+button:focus-visible, .btn:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+button.ghost, .btn.ghost { background: transparent; color: var(--ink-brown); box-shadow: none; }
+button.ghost:hover, .btn.ghost:hover { background: rgba(74,50,32,.1); }
+button.seal { background: var(--seal); border-color: #5e1b15; }
+button.seal:hover { background: #a2382d; }
+button.small { padding: 3px 8px; font-size: 12px; }
+.tools .btn { display: inline-block; }
+
+/* Main area */
+.main { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 12px; min-height: 0; }
+.chart-wrap { position: relative; min-height: 420px; border: 3px double var(--ink-brown); background: var(--sea); overflow: hidden; touch-action: none; }
+#map { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: crosshair; }
+.chart-wrap::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse at center, rgba(244,236,216,0) 55%, rgba(120,80,30,.32) 100%); }
+.map-ui { position: absolute; z-index: 3; right: 10px; bottom: 10px; display: flex; flex-direction: column; gap: 4px; }
+.map-ui button { width: 34px; height: 34px; padding: 0; font-size: 18px; font-family: var(--f-body); }
+.hint { position: absolute; z-index: 3; left: 10px; bottom: 10px; max-width: calc(100% - 70px); font-family: var(--f-sc); font-size: 13px;
+  letter-spacing: .05em; background: rgba(244,236,216,.88); border: 1px solid var(--ink-brown); padding: 3px 8px; }
+.cursor-pos { position: absolute; z-index: 3; left: 10px; top: 10px; font-family: var(--f-sc); font-size: 13px; letter-spacing: .05em;
+  background: rgba(244,236,216,.88); border: 1px solid var(--ink-brown); padding: 2px 8px; font-variant-numeric: tabular-nums; }
+
+/* Logbook */
+.log { min-width: 0; display: flex; flex-direction: column; background: linear-gradient(90deg, rgba(74,50,32,.18), rgba(74,50,32,0) 6%), #f1e6c8;
+  border: 1px solid var(--ink-brown); box-shadow: 4px 5px 0 rgba(74,50,32,.25); max-height: calc(100vh - 110px); }
+.log h2 { margin: 0; font-family: var(--f-display); font-weight: 700; font-size: 17px; letter-spacing: .14em; text-align: center; padding: 10px 12px 2px; text-transform: uppercase; }
+.log .sub { text-align: center; font-style: italic; font-size: 14px; padding: 0 12px 8px; border-bottom: 1px solid rgba(74,50,32,.5); font-variant-numeric: tabular-nums; }
+.log-scroll { overflow-y: auto; overflow-x: hidden; padding: 10px 12px; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+form { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+form .full { grid-column: 1 / -1; }
+label { display: flex; flex-direction: column; gap: 2px; font-family: var(--f-sc); font-size: 13px; letter-spacing: .1em; min-width: 0; }
+input[type=text], input[type=number], input[type=date], textarea {
+  font-family: var(--f-body); font-size: 16px; color: var(--ink-brown); background: rgba(255,250,235,.7); border: 0; border-bottom: 1px solid var(--ink-brown);
+  padding: 5px 6px; width: 100%; min-width: 0; border-radius: 0; }
+textarea { resize: vertical; min-height: 54px; border: 1px solid rgba(74,50,32,.5); }
+.form-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.err { color: var(--seal); font-style: italic; font-size: 14px; min-height: 1.2em; }
+.banner { display: flex; gap: 8px; align-items: center; justify-content: space-between; flex-wrap: wrap; font-style: italic; font-size: 14px;
+  border: 1px dashed var(--gold); padding: 6px 8px; background: rgba(164,120,44,.1); }
+
+.entries { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.entry { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 4px 10px; padding: 8px 4px; border-top: 1px dotted rgba(74,50,32,.6); cursor: pointer; }
+.entry:hover, .entry.on { background: rgba(164,120,44,.16); }
+.entry .num { width: 28px; height: 28px; border-radius: 50%; background: var(--seal); color: #f6e7d0; display: grid; place-items: center;
+  font-family: var(--f-display); font-size: 13px; box-shadow: inset 0 0 0 2px rgba(255,255,255,.18), 1px 1px 2px rgba(0,0,0,.4); }
+.entry .nm { font-family: var(--f-display); font-weight: 500; font-size: 14px; letter-spacing: .05em; overflow-wrap: anywhere; }
+.entry .meta { font-size: 13px; font-style: italic; color: #6b4e33; font-variant-numeric: tabular-nums; }
+.entry .note { grid-column: 2; font-size: 15px; overflow-wrap: anywhere; white-space: pre-wrap; }
+.entry .acts { grid-column: 2; display: flex; gap: 6px; }
+.empty { text-align: center; font-style: italic; padding: 14px 6px; }
+
+/* Dialog layer */
+.modal { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: rgba(40,26,12,.55);
+  padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.modal-card { width: min(560px, 100%); max-height: 100%; overflow: auto; background: var(--parchment); border: 3px double var(--ink-brown); padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.modal-card h3 { margin: 0; font-family: var(--f-display); letter-spacing: .1em; font-size: 17px; }
+.modal-card img { max-width: 100%; border: 1px solid var(--ink-brown); }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: end; }
+select { font-family: var(--f-body); font-size: 16px; color: var(--ink-brown); background: rgba(255,250,235,.7); border: 1px solid var(--ink-brown); padding: 5px 6px; }
+.chk { flex-direction: row; align-items: center; gap: 6px; letter-spacing: .04em; }
+.chk input { width: auto; }
+
+/* Map internals */
+.land { fill: var(--land); stroke: var(--ink-brown); stroke-width: .9; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+.waterline { fill: none; stroke: #8a6a45; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+.route { fill: none; stroke: var(--ink-navy); stroke-width: 2.2; stroke-dasharray: 8 6; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.route.hot { stroke: var(--seal); stroke-width: 3; }
+.marker { cursor: pointer; }
+.marker .lbl { font-family: var(--f-body); font-style: italic; fill: var(--ink-brown); paint-order: stroke; stroke: var(--parchment); stroke-width: 3.2px; stroke-linejoin: round; }
+.marker.on .seal-bg { fill: #b13a2f; }
+.pulse { fill: none; stroke: var(--seal); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+@media (prefers-reduced-motion: no-preference) {
+  .marker.on .pulse { animation: pulse 1.3s ease-out infinite; transform-box: fill-box; transform-origin: center; }
+}
+@keyframes pulse { from { transform: scale(.8); opacity: 1; } to { transform: scale(2.6); opacity: 0; } }
+
+@media (max-width: 860px) {
+  .main { grid-template-columns: minmax(0, 1fr); }
+  .chart-wrap { min-height: 52vh; }
+  .log { max-height: none; }
+  .hint { display: none; }
+}
+
+.chart-wrap::before { content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none; mix-blend-mode: multiply; opacity: .9;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.7' numOctaves='3' seed='9'/><feColorMatrix values='0 0 0 0 0.35  0 0 0 0 0.24  0 0 0 0 0.1  0 0 0 0.2 0'/></filter><rect width='300' height='300' filter='url(%23n)'/></svg>"); }
+.marker .lbl { display: none; }
+#map.showlbl .marker .lbl, .marker.on .lbl, .marker:hover .lbl { display: block; }
+.toast { position: fixed; z-index: 60; left: 50%; transform: translateX(-50%); bottom: max(16px, env(safe-area-inset-bottom, 0px)); max-width: calc(100vw - 32px);
+  background: var(--ink-brown); color: var(--parchment); font-family: var(--f-sc); letter-spacing: .05em; font-size: 15px; padding: 8px 14px; border: 1px solid #2c1d10; box-shadow: 0 3px 10px rgba(0,0,0,.35); }
+.toast button { margin-left: 8px; background: var(--parchment); color: var(--ink-brown); }
+[hidden] { display: none !important; }
+.note-line { font-style: italic; font-size: 14px; min-height: 1.2em; margin-top: -4px; color: #6b4e33; }
+</style>
+
+<style>html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); background: #f4ecd8; }</style>
+</head>
+<body>
+<div class="app">
+  <header class="masthead">
+    <div class="title">
+      <div class="kicker">Mappa Itinerum · Anno <span id="yr"></span></div>
+      <h1>Chart of the Voyages of <input type="text" id="owner" maxlength="40" placeholder="the Wanderer" aria-label="Name of the voyager"></h1>
+    </div>
+    <div class="tools">
+      <button id="btnReplay" class="ghost" title="Sail the whole route">Replay voyage</button>
+      <button id="btnPoster" class="seal" title="Make a printable chart">Poster PDF</button>
+      <button id="btnExport" class="ghost">Export JSON</button>
+      <label class="btn ghost" for="fileImport" style="flex-direction:row;letter-spacing:.08em;font-size:14px">Import JSON</label>
+      <input type="file" id="fileImport" accept="application/json,.json" hidden>
+    </div>
+  </header>
+
+  <div class="main">
+    <section class="chart-wrap" aria-label="Map of travels">
+      <svg id="map" role="img" aria-label="Antique world chart showing travelled places"></svg>
+      <div class="cursor-pos" id="cursorPos" aria-hidden="true">Click the sea or land to take a bearing</div>
+      <div class="map-ui">
+        <button id="zIn" aria-label="Zoom in">+</button>
+        <button id="zOut" aria-label="Zoom out">&minus;</button>
+        <button id="zFit" aria-label="Show all voyages" title="Show all voyages">&#9678;</button>
+      </div>
+      <div class="hint">Click the chart to fill in a position. Scroll or pinch to zoom.</div>
+    </section>
+
+    <aside class="log" aria-label="Logbook">
+      <h2>Ship's Log</h2>
+      <div class="sub" id="stats">&nbsp;</div>
+      <div class="log-scroll">
+        <div class="banner" id="exBanner" hidden>
+          <span>These entries are an example voyage.</span>
+          <button class="small ghost" id="btnClearEx">Clear examples</button>
+        </div>
+        <form id="form" autocomplete="off">
+          <label class="full">Place name
+            <input type="text" id="fName" placeholder="Fills in from the coordinates. Type to replace." maxlength="80">
+          </label>
+          <div class="full note-line" id="nameNote" aria-live="polite"></div>
+          <div class="full"><button type="button" id="btnGps" class="ghost small">Use my location</button></div>
+          <label>Latitude
+            <input type="text" id="fLat" inputmode="decimal" placeholder="37.2269">
+          </label>
+          <label>Longitude
+            <input type="text" id="fLon" inputmode="decimal" placeholder="-6.8983">
+          </label>
+          <label class="full">Date visited
+            <input type="date" id="fDate">
+          </label>
+          <label class="full">Journal entry
+            <textarea id="fNote" maxlength="600" placeholder="What did you see, eat, or learn here?"></textarea>
+          </label>
+          <div class="err full" id="fErr" role="alert"></div>
+          <div class="form-actions full">
+            <button type="submit" id="btnSave" class="seal">Chart this position</button>
+            <button type="button" id="btnCancel" class="ghost" hidden>Cancel edit</button>
+          </div>
+        </form>
+        <ol class="entries" id="entries"></ol>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<div class="modal" id="modal" hidden>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+    <h3 id="mTitle"></h3>
+    <div id="mBody"></div>
+    <div class="row" id="mActions"></div>
+  </div>
+</div>
+
+<script src="d3.min.js"></script>
+<script src="app.js"></script>
+<script>
+if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) { navigator.serviceWorker.register('sw.js').catch(function () {}); }
+</script>
+</body>
+</html>

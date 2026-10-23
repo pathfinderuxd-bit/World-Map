@@ -1,0 +1,14 @@
+{
+  "name": "Explorer's Chart",
+  "short_name": "Explorer's Chart",
+  "description": "An old-world chart that grows into a logbook of the places you have travelled.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4ecd8",
+  "theme_color": "#f4ecd8",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
